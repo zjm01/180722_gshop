@@ -1,34 +1,28 @@
 <template>
   <div class="shop_container">
-    <ul class="shop_list" >
-      <li class="shop_li border-1px" >
+    <ul class="shop_list" v-if="shops.length">
+      <li class="shop_li border-1px"  v-for="(shop,index) in shops" :index="index" @click="$router.push('/shop')">
         <a>
           <div class="shop_left">
-            <img class="shop_img" src="https://fuss10.elemecdn.com/4/f7/a503f1749339842deee376184ebebjpeg.jpeg?imageMogr/format/webp/thumbnail/!130x130r/gravity/Center/crop/130x130/">
+            <img class="shop_img" src="https://fuss10.elemecdn.com/2/35/696aa5cf9820adada9b11a3d14bf5jpeg.jpeg" />
           </div>
           <div class="shop_right">
             <section class="shop_detail_header">
-              <h4 class="shop_title ellipsis">鲜果百汇</h4>
+              <h4 class="shop_title ellipsis">{{shop.name}}</h4>
               <ul class="shop_detail_ul">
-                <li class="supports" >
-                保
+                <li class="supports"  v-for="(support,index) in shop.supports" :key="index">
+               {{support.icon_name}}
                 </li>
-								<li class="supports" >
-								质
-								</li>
-								<li class="supports" >
-								量
-								</li>
               </ul>
             </section>
             <section class="shop_rating_order">
               <section class="shop_rating_order_left">
-                <Star  />
+                <Star :score="shop.rating" :size="24"  />
                 <div class="rating_section">
-                  品牌
+                 {{shop.rating}}
                 </div>
                 <div class="order_section">
-                  月售104单
+                  月售{{shop.recent_order_num}}单
                 </div>
               </section>
               <section class="shop_rating_order_right">
@@ -37,9 +31,9 @@
             </section>
             <section class="shop_distance">
               <p class="shop_delivery_msg">
-                <span>￥25起送</span>
+                <span>￥{{shop.float_minimum_order_amount}}</span>
                 <span class="segmentation">/</span>
-                <span>配送费约¥5</span>
+                <span>配送费约¥{{shop.float_delivery_fee}}</span>
               </p>
             </section>
           </div>
@@ -47,14 +41,28 @@
       </li>
     </ul>
     <!-- svg显示加载中提示界面 -->
+		<ul v-else>
+			<li v-for="item in 6"><img src="./images/shop_back.svg" alt="back"></li>
+		</ul>
   </div>
 </template>
 <script>
 	import Star from '../Star/Star.vue'
+	import {mapState,mapActions} from 'vuex'
+
   export default {
+		data () {
+			return {
+				imgBaseUrl:'http://cangdu.org:8001/img/'
+				// shops: []
+			}
+		},
   components: {
   	Star
-  }
+  },
+	computed:{
+		...mapState(['shops'])
+	}
   }
 </script>
 <style lang="stylus" rel="stylesheet/stylus">

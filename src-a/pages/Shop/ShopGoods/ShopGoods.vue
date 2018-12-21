@@ -11,7 +11,7 @@
               {{good.name}}
             </span>
           </li>
-        </ul>
+        </ul> 
       </div>
       <div class="foods-wrapper">
         <!-- 右侧的食物列表是根据左侧的分类列表展现的-->

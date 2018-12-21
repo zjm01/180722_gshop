@@ -19,7 +19,7 @@ import Login from '../pages/Login/Login.vue'
 import Shop from '../pages/Shop/Shop.vue'
 import ShopGoods from '../pages/Shop/ShopGoods/ShopGoods.vue'
 import ShopRatings from '../pages/Shop/ShopRatings/ShopRatings.vue'
-import ShopInfo from '../pages/Shop/ShopInfo/ShopInfo.vue'
+import ShopInfo from '../pages/Shop/ShopInfo/ShopInfo.vue' 
 
 // 全局注册Vue-router组件
 Vue.use(VueRouter)

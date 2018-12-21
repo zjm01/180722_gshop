@@ -4,17 +4,19 @@
       <div class="login_header">
         <h2 class="login_logo">宅急送</h2>
         <div class="login_header_title">
-          <a href="javascript:;" :class="{on: loginWay}" >短信登录</a>
-          <a href="javascript:;" :class="{on: !loginWay}" >密码登录</a>
+          <a href="javascript:;" :class="{on:loginWay}" @click="loginWay=true">短信登录</a>
+          <a href="javascript:;" :class="{on:!loginWay}" @click="loginWay=false">密码登录</a>
         </div>
       </div>
       <div class="login_content">
-        <form>
+        <form @submit.prevent="login">
           <!-- 短信登陆 -->
           <div :class="{on: loginWay}">
             <section class="login_message">
               <input type="tel" maxlength="11" placeholder="手机号" v-model="phone">
-              <button :disabled="!rightPhone" class="get_verification" :class="{right_phone: rightPhone}">获取验证码</button>
+              <button :disabled="!rightPhone" class="get_verification" :class="{right_phone:rightPhone}" @click.prevent="getCode">
+								{{codeTime? `已发送(${codeTime}s)` : '获取验证码'}}
+							</button>
             </section>
             <section class="login_verification">
               <input type="tel" maxlength="8" placeholder="验证码" v-model="code">
@@ -34,14 +36,14 @@
                 <!-- 是否显示密码 -->
                 <input type="text" maxlength="8" placeholder="密码" v-if="showPwd" v-model="pwd">
                 <input type="password" maxlength="8" placeholder="密码" v-else v-model="pwd">
-                <div class="switch_button off" :class="showPwd?'on':'off'" >
-                  <div class="switch_circle" :class="{right: showPwd}"></div>
-                  <span class="switch_text">显示</span>
+                <div class="switch_button"  :class="showPwd?'on':'off'"  @click="showPwd=!showPwd" >
+                  <div class="switch_circle" :class="showPwd?'right':''"></div>
+                  <span class="switch_text">{{showPwd?"abc":"..."}}</span>
                 </div>
               </section>
               <section class="login_message">
                 <input type="text" maxlength="11" placeholder="验证码" v-model="captcha">
-                <img class="get_verification" src="http://localhost:4000/captcha" alt="captcha"  ref="captcha">
+                <img class="get_verification" src="http://localhost:4000/captcha" alt="captcha"  ref="captcha" @click="getCaptcha">
               </section>
             </section>
           </div>
@@ -54,24 +56,145 @@
         <i class="iconfont icon-arrow-left"></i>
       </a>
     </div>
+		<AlertTip  :alertText="alertText" v-show="alertShow" @closeTip="closeTip"></AlertTip>
   </section>
 </template>
 <script>
+	import AlertTip from '../../components/AlertTip/AlertTip.vue'
+ import {reqPwdLogin,reqSendCode,reqSmsLogin} from '../../api/index.js'
+
   export default {
     data () {
       return {
-        loginWay: true, // true为短信登陆，false为密码登陆
+        loginWay:true,// true为短信登陆，false为密码登陆
         codeTime: 0, // 验证码倒计时
         showPwd: false, // 是否显示密码
         phone: '', // 手机号
         code: '', // 短信验证码
         name: '', // 用户名
-        pwd: '', // 密码
+        pwd: '', // 密码 
         captcha: '', // 图形验证码
         alertText: '', // 提示文本
         alertShow: false // 是否显示提示框
       }
-    }
+    },
+		computed:{
+			rightPhone(){
+				return /^1\d{10}$/.test(this.phone)
+			}
+		},
+		methods:{
+			//关闭警告框
+			closeTip(){
+				this.alertShow=false
+				this.alertText=""
+			},
+			//异步获取短信验证码
+				async getCode(){
+					if(this.codeTime==0){
+						this.codeTime=60
+						this.intervalId=setInterval(()=>{
+							this.codeTime--
+							if(this.codeTime<=0){
+								clearInterval(this.intervalId)
+							}
+						},1000)
+						//发送ajax请求，即发送短信验证码
+						const result = await reqSendCode (this.phone)
+
+						console.log(result)
+						if(result.code==1){
+							//显示提示
+							this.showAlert(result.msg)
+							//停止倒计时
+							if(this.codeTime>0){
+								this.codeTime=0
+								clearInterval(this.intervalId)
+								this.intervalId=undefined
+							}
+						}
+					}
+				},
+				//获取验证码
+				getCaptcha(){
+					//每次指定desrc值不同(这里不存在跨域的问题4000虽然，但是没有ajax请求)
+					this.$refs.captcha.src='http://localhost:4000/captcha?time=' + Date.now()
+				},
+				showAlert(alertText){
+					this.alertShow=true
+					this.alertText=alertText
+				},
+				//实现异步登录，前台表单验证
+		    async login(){
+					let result
+					//判断是什么登录方式，是短信还是密码
+					if(this.loginWay){
+						//短信登录
+						const {phone,rightPhone,code}=this
+						if(!this.rightPhone){
+							//手机号不对
+							this.alertShow=true
+							this.alertText="手机号码不正确"
+							return
+						}else if(!/^\d{6}$/.test(code)){
+							//提示验证码必须是六位数字
+							this.alertShow=true
+							this.alertText="验证码不正确"
+							return
+						}
+						//发送ajax请求短信登录
+						 result =await reqSmsLogin(phone,code)
+						// console.log(result)
+					}else{
+						//密码登录
+						const {name,pwd,captcha}=this
+						if(!name){
+							//提示用户名不可为空
+							this.alertShow=true
+							this.alertText="用户名不可以为空"
+							return
+						}else if(!pwd){
+							//提示密码不可以为空
+							this.alertShow=true
+							this.alertText="密码不可以为空"
+							return
+						}else if(!captcha){
+							//验证码不可以为空
+							this.alertShow=true
+							this.alertText="验证码不可以为空"
+							return
+						}
+						 result = await reqPwdLogin({name,pwd,captcha})
+					//	console.log(result)
+					}
+					//根据结果数据处理
+					if(result.code===0){
+						//登录成功
+						const user=result.data
+						//将user信息保存到state中
+						this.$store.dispatch("recordUser",user)
+						//跳转路由到个人中心界面 
+						this.$router.replace("/profile")
+					}else{
+						//登录失败
+						const msg = result.msg	
+						//验证码错误，重新获取验证码
+						this.getCaptcha()
+						//使输入框变为空
+						this.captcha=''
+						this.showAlert(msg)
+						if(this.codeTime>0){
+							this.codeTime=0
+							clearInterval(this.intervalId)
+							this.intervalId=undefined
+						}
+			   	}
+					
+				}
+		},
+		components: {
+			AlertTip
+		}
   }
 </script>
 <style lang="stylus" rel="stylesheet/stylus">
